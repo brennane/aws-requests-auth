@@ -42,7 +42,6 @@ class AWSRequestsAuth(requests.auth.AuthBase):
     """
     Auth class that allows us to connect to AWS services
     via Amazon's signature version 4 signing process
-
     Adapted from https://docs.aws.amazon.com/general/latest/gr/sigv4-signed-request-examples.html
     """
 
@@ -55,14 +54,12 @@ class AWSRequestsAuth(requests.auth.AuthBase):
                  aws_token=None):
         """
         Example usage for talking to an AWS Elasticsearch Service:
-
         AWSRequestsAuth(aws_access_key='YOURKEY',
                         aws_secret_access_key='YOURSECRET',
                         aws_host='search-service-foobar.us-east-1.es.amazonaws.com',
                         aws_region='us-east-1',
                         aws_service='es',
                         aws_token='...')
-
         The aws_token is optional and is used only if you are using STS
         temporary credentials.
         """
@@ -77,7 +74,6 @@ class AWSRequestsAuth(requests.auth.AuthBase):
         """
         Adds the authorization headers required by Amazon's signature
         version 4 signing process to the request.
-
         Adapted from https://docs.aws.amazon.com/general/latest/gr/sigv4-signed-request-examples.html
         """
         aws_headers = self.get_aws_request_headers_handler(r)
@@ -102,7 +98,6 @@ class AWSRequestsAuth(requests.auth.AuthBase):
         Returns a dictionary containing the necessary headers for Amazon's
         signature version 4 signing process. An example return value might
         look like
-
             {
                 'Authorization': 'AWS4-HMAC-SHA256 Credential=YOURKEY/20160618/us-east-1/es/aws4_request, '
                                  'SignedHeaders=host;x-amz-date, '
@@ -136,12 +131,15 @@ class AWSRequestsAuth(requests.auth.AuthBase):
         if aws_token:
             signed_headers += ';x-amz-security-token'
 
+        ### import pdb; pdb.set_trace()
+
         # Create payload hash (hash of the request body content). For GET
         # requests, the payload is an empty string ('').
-        if hasattr(r, "body"):
-            body = r.body if r.body else bytes()
-        else:
-            body = r.stream.body if r.stream and r.stream.body else bytes()
+        body = r.read()
+        #### if hasattr(r, "body"):
+        ####     body = r.body if r.body else bytes()
+        #### else:
+        ####     body = r.stream._body if r.stream and r.stream._body else bytes()
 
         try:
             body = body.encode('utf-8')
@@ -219,15 +217,12 @@ class AWSRequestsAuth(requests.auth.AuthBase):
         end of this function our query string values must
         be URL-encoded (space=%20) and the parameters must be sorted
         by name.
-
         This method assumes that the query params in `r` are *already*
         url encoded.  If they are not url encoded by the time they make
         it to this function, AWS may complain that the signature for your
         request is incorrect.
-
         It appears elasticsearc-py url encodes query paramaters on its own:
             https://github.com/elastic/elasticsearch-py/blob/5dfd6985e5d32ea353d2b37d01c2521b2089ac2b/elasticsearch/connection/http_requests.py#L64
-
         If you are using a different client than elasticsearch-py, it
         will be your responsibility to urleconde your query params before
         this method is called.
@@ -238,7 +233,12 @@ class AWSRequestsAuth(requests.auth.AuthBase):
             parsedurl = urlparse(r.url)
         else:
             parsedurl = r.url
-        querystring_sorted = '&'.join(sorted(parsedurl.query.split('&')))
+        if isinstance(parsedurl.query, bytes):
+            qstr = parsedurl.query.decode()
+        else:
+            qstr = parsedurl.query
+
+        querystring_sorted = '&'.join(sorted(qstr.split('&')))
 
         for query_param in querystring_sorted.split('&'):
             key_val_split = query_param.split('=', 1)
