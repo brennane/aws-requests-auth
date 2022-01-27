@@ -135,11 +135,13 @@ class AWSRequestsAuth(requests.auth.AuthBase):
 
         # Create payload hash (hash of the request body content). For GET
         # requests, the payload is an empty string ('').
-        body = r.read()
-        #### if hasattr(r, "body"):
-        ####     body = r.body if r.body else bytes()
-        #### else:
-        ####     body = r.stream._body if r.stream and r.stream._body else bytes()
+        if hasattr(r, "read"):
+            # httpx.Request
+            body = r.read()
+        elif hasattr(r, "body"):
+            body = r.body if r.body else bytes()
+        else:
+            body = r.stream._body if r.stream and r.stream._body else bytes()
 
         try:
             body = body.encode('utf-8')
